@@ -1,0 +1,57 @@
+<div>
+
+  <div class="col left">
+    <div ngbDropdown class="d-inline-block">
+      <button class="btn btn-outline-primary" id="dropdownBasic1" ngbDropdownToggle>{{!selectedGroup ? 'Select Group' : 'Group ' + selectedGroup}}</button>
+      <div ngbDropdownMenu aria-labelledby="dropdownBasic1">
+        <input type="text" class="form-control" (blur)="onGroupInputBlur($event.target.value)">
+        <div *ngFor='let group of groups'>
+          <button ngbDropdownItem (click)="onGroupClick(group)">Group {{group}}</button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="selectedGroup">
+
+      <ul *ngFor="let device of devicesInGroup">
+          <li>
+            {{device.name}}<span (click)="onRemoveDeviceFromGroupClick(device)" class="close">x</span>
+          </li>
+      </ul>
+      <button (click)="onApplyBtnClick()">Apply changes</button>
+      <button (click)="onClearBtnClick()">Clear</button>
+    </div>
+  </div>
+  
+  <div class="right">
+    <form>
+      <div class="form-group form-inline">
+        <input class="form-control ml-2" placeholder="Device Name" type="text" [formControl]="filter"/>
+      </div>
+    </form>
+    
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          <th scope="col">ID</th>
+          <th scope="col">Name</th>
+          <th scope="col">Status</th>
+          <th scope="col">GroupId</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let device of devices$ | async">
+          
+          <td scope="row">
+            <input #inputChecked type="checkbox" [disabled]="!selectedGroup" [checked]="device.groupId === selectedGroup" (change)="onChangeCheck(inputChecked.checked,device)">
+          </td>
+          <th scope="row">{{device.id}}</th>
+          <td><ngb-highlight [result]="device.name" [term]="filter.value"></ngb-highlight></td>
+          <td [ngStyle]="{'background-color':device.status == 'Inactive' ? 'red' : 'green'}" (click)="changeStatus(device)">{{device.status}}</td>
+          <td >{{device.groupId}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
