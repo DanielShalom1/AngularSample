@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { Device } from 'src/app/models/device';
 import { DemoServerService } from 'src/app/services/demo-server/demo-server.service';
 import { map, startWith } from 'rxjs/operators';
-import { Status } from 'src/app/models/status';
+import { debounceTime, distinctUntilChanged, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-devices',
@@ -15,10 +15,11 @@ import { Status } from 'src/app/models/status';
 
 export class DevicesComponent implements OnInit {
   devicesInGroup: Device[];
+  selectedGroupName: string;
   selectedGroup: number;
   groups: number[];
   devices: Device[];
-  devices$: Observable<Device[]>;
+  filteredDevices$: Observable<Device[]>;
   filter = new FormControl('');
 
   constructor(private server: DemoServerService) {
@@ -28,34 +29,35 @@ export class DevicesComponent implements OnInit {
   ngOnInit(): void {
     this.getDevices();
 
-    this.devices$ = this.filter.valueChanges.pipe(
+    this.filteredDevices$ = this.filter.valueChanges.pipe(
+      debounceTime(500),
       startWith(''),
-      map(text => this.search(text))
+      map(text => this._search(text))
     );
 
     this.devices.forEach(device => {
       if (!this.groups.includes(device.groupId) && device.groupId != null) {
-        this.groups.push(device.groupId);
+        this.groups = [...this.groups, device.groupId];
       }
     });
   }
 
   getDevices(): void {
-    this.server.getDevices().subscribe(devices => this.devices = devices);
-  }
-
-  changeStatus(device: Device): void{
-    device.status === Status.active ? device.status = Status.inactive : device.status = Status.active;
-  }
-
-  onGroupClick(group: number): void{
-    this.selectedGroup = group;
-    this.devicesInGroup = this.devices.filter(device => {
-      return device.groupId === group;
+    this.server.getDevices().subscribe(devices => {
+      this.devices = devices;
+      devices.forEach(device => {
+        if (!this.groups.includes(device.groupId) && device.groupId != null) {
+          this.groups.push(device.groupId);
+        }
+      });
     });
   }
 
-  onGroupInputBlur(group: number): void{
+  changeStatus(device: Device): void{
+    device.isActive = !device.isActive;
+  }
+
+  onGroupClick(group: number): void{
     this.selectedGroup = group;
     this.devicesInGroup = this.devices.filter(device => {
       return device.groupId === group;
@@ -92,7 +94,17 @@ export class DevicesComponent implements OnInit {
     }
   }
 
-  private search(text: string): Device[] {
+  getSelectedGroupName(): string {return !this.selectedGroup ? 'Select Group' : 'Group ' + this.selectedGroup; }
+
+  trackByDeviceId(index: number, device: Device): number {
+    return device.id;
+  }
+
+  trackByGroupId(index: number, group: number): number {
+    return group;
+  }
+
+  _search(text: string): Device[] {
     return this.devices.filter(device => {
       const term = text.toLowerCase();
       return device.name.toLowerCase().includes(term);
