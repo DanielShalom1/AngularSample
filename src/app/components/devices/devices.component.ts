@@ -1,8 +1,8 @@
+import { DeviceDbo } from './../../models/deviceDbo';
+import { DemoServerService } from 'src/app/services/demo-server/demo-server.service';
+import { Device } from './../../models/device';
 import { debounceTime } from 'rxjs/internal/operators';
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { DeviceDbo } from 'src/app/models/deviceDbo';
-import { DemoServerService } from 'src/app/services/demo-server/demo-server.service';
-import { Device } from 'src/app/models/device';
 import { fromEvent, Observable } from 'rxjs';
 
 @Component({
