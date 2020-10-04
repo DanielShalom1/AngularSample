@@ -25,7 +25,7 @@
   
   <div class="right">
     <div class="form-group form-inline">
-      <input placeholder="Device Name" type="text" [(ngModel)]="searchTerm"/>
+      <input #filterInput placeholder="Device Name" type="text"/>
     </div>
     
     <table class="table table-striped">
@@ -39,7 +39,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let device of devices | deviceNameFilter:searchTerm | async;trackBy:trackByDeviceId">
+        <tr *ngFor="let device of filteredDevices;trackBy:trackByDeviceId">
           
           <td scope="row">
             <input type="checkbox" [disabled]="!selectedGroup" [checked]="device.isChecked" (change)="device.isChecked = $event.target.checked">

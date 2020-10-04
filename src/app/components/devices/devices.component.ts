@@ -1,11 +1,9 @@
-import { Component, OnInit } from '@angular/core';
-import { FormControl } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { debounceTime } from 'rxjs/internal/operators';
+import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { DeviceDbo } from 'src/app/models/deviceDbo';
 import { DemoServerService } from 'src/app/services/demo-server/demo-server.service';
-import { map, startWith } from 'rxjs/operators';
-import { debounceTime, distinctUntilChanged, tap } from 'rxjs/operators';
 import { Device } from 'src/app/models/device';
+import { fromEvent, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-devices',
@@ -14,12 +12,13 @@ import { Device } from 'src/app/models/device';
 })
 
 
-export class DevicesComponent implements OnInit {
+export class DevicesComponent implements OnInit, AfterViewInit {
+  @ViewChild('filterInput') filterInput: ElementRef;
   selectedGroupName: string;
   selectedGroup: number;
   groups: number[];
   devices: Device[];
-  searchTerm = "";
+  filteredDevices: Device[];
 
   constructor(private server: DemoServerService) {
     this.groups = [];
@@ -27,16 +26,23 @@ export class DevicesComponent implements OnInit {
 
   ngOnInit(): void {
     this.getDevices();
-
     this.devices.forEach(device => {
       if (!this.groups.includes(device.groupId) && device.groupId != null) {
         this.groups = [...this.groups, device.groupId];
       }
     });
-}
+    this.filteredDevices = [...this.devices];
+  }
+
+  ngAfterViewInit(): void {
+    fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(500)).subscribe(() =>
+        this.filteredDevices = this._search(this.filterInput.nativeElement.value)
+      );
+  }
 
   getDevices(): void {
     this.devices = [];
+    this.groups = [];
     this.server.getDevices().subscribe(devices => {
       devices.forEach(deviceDbo => {
         const device = new Device(deviceDbo.id, deviceDbo.groupId, deviceDbo.name, deviceDbo.isActive);
@@ -46,6 +52,7 @@ export class DevicesComponent implements OnInit {
         }
       });
     });
+    this.groups.sort();
   }
 
   changeStatus(device: DeviceDbo): void{
@@ -64,22 +71,38 @@ export class DevicesComponent implements OnInit {
   }
 
   onApplyBtnClick(): void{
-    this.server.update(this.getCheckedDevices(), this.selectedGroup).subscribe( res => this.getDevices());
+    this.server.update(this.getCheckedDevices(), this.selectedGroup).subscribe( () => this.getDevices());
+    this.filteredDevices = this._search(this.filterInput.nativeElement.value);
+    this.devices.forEach(device =>{
+      if (device.groupId === this.selectedGroup) {
+        device.isChecked = true;
+      }
+      else{
+        device.isChecked = false;
+      }
+    });
   }
 
   onClearBtnClick(): void{
-
+    this.devices.forEach(device =>{
+      if (device.groupId === this.selectedGroup) {
+        device.isChecked = true;
+      }
+      else{
+        device.isChecked = false;
+      }
+    });
   }
 
   getCheckedDevices(): Device[] {return this.devices.filter(device => device.isChecked); }
 
   getSelectedGroupName(): string {return !this.selectedGroup ? 'Select Group' : 'Group ' + this.selectedGroup; }
 
-  trackByDeviceId(index: number, device: DeviceDbo): number {
+  trackByDeviceId(device: DeviceDbo): number {
     return device.id;
   }
 
-  trackByGroupId(index: number, group: number): number {
+  trackByGroupId(group: number): number {
     return group;
   }
 

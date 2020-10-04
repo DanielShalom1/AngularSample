@@ -23,7 +23,7 @@ export class DemoServerService {
   getDevices(): Observable<DeviceDbo[]>{
     return of(this.devices);
   }
-  update(devicesInGroup: DeviceDbo[], selectedGroup: number): Observable<any> {
+  update(devicesInGroup: DeviceDbo[], selectedGroup: number): Observable<boolean> {
     devicesInGroup.forEach(device => {
       this.devices.find(o => o.id === device.id).groupId = selectedGroup;
     });
@@ -33,7 +33,7 @@ export class DemoServerService {
         device.groupId = null;
       }
     });
-    return EMPTY;
+    return of(true);
   }
 
 }

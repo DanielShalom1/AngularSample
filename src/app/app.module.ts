@@ -10,8 +10,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { DropdownModule } from 'primeng/dropdown';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import {ListboxModule} from 'primeng/listbox';
-import { DeviceNameFilterPipe } from './device-name-filter.pipe';
-
 
 
 @NgModule({
@@ -19,7 +17,6 @@ import { DeviceNameFilterPipe } from './device-name-filter.pipe';
     AppComponent,
     DevicesComponent,
     ResultsComponent,
-    DeviceNameFilterPipe,
     ],
   imports: [
     BrowserModule,
