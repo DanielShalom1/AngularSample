@@ -13,7 +13,7 @@
 
     <div *ngIf="selectedGroup">
 
-      <ul *ngFor="let device of devicesInGroup; trackBy:trackByDeviceId">
+      <ul *ngFor="let device of getCheckedDevices(); trackBy:trackByDeviceId">
           <li>
             {{device.name}}<span (click)="onRemoveDeviceFromGroupClick(device)" class="close">x</span>
           </li>
@@ -24,11 +24,9 @@
   </div>
   
   <div class="right">
-    <form>
-      <div class="form-group form-inline">
-        <input class="form-control ml-2" placeholder="Device Name" type="text" [formControl]="filter"/>
-      </div>
-    </form>
+    <div class="form-group form-inline">
+      <input placeholder="Device Name" type="text" [(ngModel)]="searchTerm"/>
+    </div>
     
     <table class="table table-striped">
       <thead>
@@ -41,15 +39,15 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let device of filteredDevices$ | async; trackBy:trackByDeviceId">
+        <tr *ngFor="let device of devices | deviceNameFilter:searchTerm | async;trackBy:trackByDeviceId">
           
           <td scope="row">
-            <input type="checkbox" [disabled]="!selectedGroup" [checked]="device.groupId === selectedGroup" (change)="onChangeCheck($event.target.checked,device)">
+            <input type="checkbox" [disabled]="!selectedGroup" [checked]="device.isChecked" (change)="device.isChecked = $event.target.checked">
           </td>
           <th scope="row">{{device.id}}</th>
-          <td><ngb-highlight [result]="device.name" [term]="filter.value"></ngb-highlight></td>
+          <td>{{device.name}}</td>
           <td [ngClass]="device.isActive ? 'green' : 'red'" (click)="changeStatus(device)">{{device.isActive}}</td>
-          <td >{{device.groupId}}</td>
+          <td>{{device.groupId}}</td>
         </tr>
       </tbody>
     </table>

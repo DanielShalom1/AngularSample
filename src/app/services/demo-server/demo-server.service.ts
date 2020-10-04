@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { Device } from 'src/app/models/device';
+import { DeviceDbo } from 'src/app/models/deviceDbo';
 import { EMPTY } from 'rxjs';
 
 @Injectable({
@@ -8,7 +8,7 @@ import { EMPTY } from 'rxjs';
 })
 export class DemoServerService {
 
-  private devices: Device[] = [
+  private devices: DeviceDbo[] = [
     {id: 0, name: 'John', isActive: false, groupId: 1},
     {id: 1, name: 'Dan', isActive: true, groupId: 2},
     {id: 2, name: 'Yossi', isActive: false, groupId: 1},
@@ -20,10 +20,10 @@ export class DemoServerService {
 
   constructor() { }
 
-  getDevices(): Observable<Device[]>{
+  getDevices(): Observable<DeviceDbo[]>{
     return of(this.devices);
   }
-  update(devicesInGroup: Device[], selectedGroup: number): Observable<any> {
+  update(devicesInGroup: DeviceDbo[], selectedGroup: number): Observable<any> {
     devicesInGroup.forEach(device => {
       this.devices.find(o => o.id === device.id).groupId = selectedGroup;
     });
