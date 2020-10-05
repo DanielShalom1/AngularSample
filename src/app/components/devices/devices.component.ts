@@ -14,14 +14,12 @@ import { fromEvent, Observable } from 'rxjs';
 
 export class DevicesComponent implements OnInit, AfterViewInit {
   @ViewChild('filterInput') filterInput: ElementRef;
-  selectedGroupName: string;
   selectedGroup: number;
-  groups: number[];
-  devices: Device[];
-  filteredDevices: Device[];
+  groups: number[] = [];
+  devices: Device[] = [];
+  filteredDevices: Device[] = [];
 
   constructor(private server: DemoServerService) {
-    this.groups = [];
   }
 
   ngOnInit(): void {
@@ -35,7 +33,7 @@ export class DevicesComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(500)).subscribe(() =>
+    fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(300)).subscribe(() =>
         this.filteredDevices = this._search(this.filterInput.nativeElement.value)
       );
   }
@@ -45,7 +43,10 @@ export class DevicesComponent implements OnInit, AfterViewInit {
     this.groups = [];
     this.server.getDevices().subscribe(devices => {
       devices.forEach(deviceDbo => {
-        const device = new Device(deviceDbo.id, deviceDbo.groupId, deviceDbo.name, deviceDbo.isActive);
+        const device: Device =
+        {
+           id: deviceDbo.id, groupId: deviceDbo.groupId, name: deviceDbo.name, isActive: deviceDbo.isActive, isChecked: false
+        };
         this.devices.push(device);
         if (!this.groups.includes(deviceDbo.groupId) && deviceDbo.groupId != null) {
           this.groups.push(deviceDbo.groupId);
@@ -55,7 +56,7 @@ export class DevicesComponent implements OnInit, AfterViewInit {
     this.groups.sort();
   }
 
-  changeStatus(device: DeviceDbo): void{
+  changeStatus(device: Device): void{
     device.isActive = !device.isActive;
   }
 
@@ -73,7 +74,7 @@ export class DevicesComponent implements OnInit, AfterViewInit {
   onApplyBtnClick(): void{
     this.server.update(this.getCheckedDevices(), this.selectedGroup).subscribe( () => this.getDevices());
     this.filteredDevices = this._search(this.filterInput.nativeElement.value);
-    this.devices.forEach(device =>{
+    this.devices.forEach(device => {
       if (device.groupId === this.selectedGroup) {
         device.isChecked = true;
       }
@@ -84,7 +85,7 @@ export class DevicesComponent implements OnInit, AfterViewInit {
   }
 
   onClearBtnClick(): void{
-    this.devices.forEach(device =>{
+    this.devices.forEach(device => {
       if (device.groupId === this.selectedGroup) {
         device.isChecked = true;
       }
