@@ -27,18 +27,16 @@ export class DevicesComponent implements OnInit, OnDestroy, AfterViewInit {
     this.server.devices$
     .pipe(takeUntil(this.unsubscribe$))
     .subscribe(devicesDbo => {
-      this.devices = [];
-      this.groups = [];
-      devicesDbo.forEach(deviceDbo => {
+      this.devices = devicesDbo.map(deviceDbo => {
+        if (!this.groups.includes(deviceDbo.groupId) && deviceDbo.groupId != null) {
+          this.groups = [...this.groups, deviceDbo.groupId];
+        }
         const device: Device =
         {
            id: deviceDbo.id, groupId: deviceDbo.groupId, name: deviceDbo.name, isActive: deviceDbo.isActive, isChecked: false
         };
-        this.devices.push(device);
-        if (!this.groups.includes(deviceDbo.groupId) && deviceDbo.groupId != null) {
-          this.groups.push(deviceDbo.groupId);
-        }
-      });
+        return device;
+     });
       this.groups.sort();
       this.filteredDevices = [...this.devices];
     });
@@ -48,19 +46,17 @@ export class DevicesComponent implements OnInit, OnDestroy, AfterViewInit {
     const events = [];
     events.push(fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(300)));
     events.push(this.server.devices$.pipe(takeUntil(this.unsubscribe$)));
-    combineLatest(events).subscribe(([, devices]: any[]) => {
-      this.devices = [];
-      this.groups = [];
-      devices.forEach(deviceDbo => {
+    combineLatest(events).pipe(takeUntil(this.unsubscribe$)).subscribe(([, devices]: any[]) => {
+      this.devices = devices.map(deviceDbo => {
+        if (!this.groups.includes(deviceDbo.groupId) && deviceDbo.groupId != null) {
+          this.groups = [...this.groups, deviceDbo.groupId];
+        }
         const device: Device =
         {
            id: deviceDbo.id, groupId: deviceDbo.groupId, name: deviceDbo.name, isActive: deviceDbo.isActive, isChecked: false
         };
-        this.devices.push(device);
-        if (!this.groups.includes(deviceDbo.groupId) && deviceDbo.groupId != null) {
-          this.groups.push(deviceDbo.groupId);
-        }
-      });
+        return device;
+     });
       this.groups.sort();
       this.filteredDevices = this._search(this.filterInput.nativeElement.value, this.devices);
     });
@@ -72,7 +68,7 @@ export class DevicesComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onGroupClick(group: number): void{
     this.selectedGroup = group;
-    this.devices.map(device => device.isChecked = device.groupId === group);
+    this.devices.forEach(device => device.isChecked = device.groupId === group);
   }
 
   onRemoveDeviceFromGroupClick(device: Device): void{
@@ -82,11 +78,11 @@ export class DevicesComponent implements OnInit, OnDestroy, AfterViewInit {
   onApplyBtnClick(): void{
     this.server.update(this.getCheckedDevices(), this.selectedGroup);
     this.filteredDevices = this._search(this.filterInput.nativeElement.value, this.devices);
-    this.devices.map(device => device.isChecked = device.groupId === this.selectedGroup);
+    this.devices.forEach(device => device.isChecked = device.groupId === this.selectedGroup);
   }
 
   onClearBtnClick(): void{
-    this.devices.map(device => device.isChecked = device.groupId === this.selectedGroup);
+    this.devices.forEach(device => device.isChecked = device.groupId === this.selectedGroup);
   }
 
   getCheckedDevices(): Device[] {return this.devices.filter(device => device.isChecked); }
@@ -97,8 +93,8 @@ export class DevicesComponent implements OnInit, OnDestroy, AfterViewInit {
     return device.id;
   }
 
-  trackByGroupId(group: number): number {
-    return group;
+  trackByGroupId(groupId: number): number {
+    return groupId;
   }
 
   _search(text: string, devices: Device[]): Device[] {
