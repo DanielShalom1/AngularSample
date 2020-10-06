@@ -1,9 +1,9 @@
 import { DemoServerService } from './../../services/demo-server/demo-server.service';
 import { DeviceDbo } from './../../models/deviceDbo';
 import { Device } from './../../models/device';
-import { debounceTime } from 'rxjs/internal/operators';
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { fromEvent, Observable } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/internal/operators';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { fromEvent, Observable, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-devices',
@@ -12,7 +12,8 @@ import { fromEvent, Observable } from 'rxjs';
 })
 
 
-export class DevicesComponent implements OnInit, AfterViewInit {
+export class DevicesComponent implements OnInit, OnDestroy, AfterViewInit {
+  private unsubscribe$ = new Subject<void>();
   @ViewChild('filterInput') filterInput: ElementRef;
   selectedGroup: number;
   groups: number[] = [];
@@ -23,26 +24,12 @@ export class DevicesComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.getDevices();
-    this.devices.forEach(device => {
-      if (!this.groups.includes(device.groupId) && device.groupId != null) {
-        this.groups = [...this.groups, device.groupId];
-      }
-    });
-    this.filteredDevices = [...this.devices];
-  }
-
-  ngAfterViewInit(): void {
-    fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(300)).subscribe(() =>
-        this.filteredDevices = this._search(this.filterInput.nativeElement.value)
-      );
-  }
-
-  getDevices(): void {
-    this.devices = [];
-    this.groups = [];
-    this.server.getDevices().subscribe(devices => {
-      devices.forEach(deviceDbo => {
+    this.server.devices$
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe(devicesDbo => {
+      this.devices = [];
+      this.groups = [];
+      devicesDbo.forEach(deviceDbo => {
         const device: Device =
         {
            id: deviceDbo.id, groupId: deviceDbo.groupId, name: deviceDbo.name, isActive: deviceDbo.isActive, isChecked: false
@@ -52,8 +39,15 @@ export class DevicesComponent implements OnInit, AfterViewInit {
           this.groups.push(deviceDbo.groupId);
         }
       });
+      this.groups.sort();
+      this.filteredDevices = [...this.devices];
     });
-    this.groups.sort();
+  }
+
+  ngAfterViewInit(): void {
+    fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(300)).subscribe(() =>
+        this.filteredDevices = this._search(this.filterInput.nativeElement.value, this.devices)
+      );
   }
 
   changeStatus(device: Device): void{
@@ -62,9 +56,7 @@ export class DevicesComponent implements OnInit, AfterViewInit {
 
   onGroupClick(group: number): void{
     this.selectedGroup = group;
-    this.devices.forEach(device => {
-      device.isChecked = device.groupId === group;
-    });
+    this.devices.map(device => device.isChecked = device.groupId === group);
   }
 
   onRemoveDeviceFromGroupClick(device: Device): void{
@@ -72,27 +64,13 @@ export class DevicesComponent implements OnInit, AfterViewInit {
   }
 
   onApplyBtnClick(): void{
-    this.server.update(this.getCheckedDevices(), this.selectedGroup).subscribe( () => this.getDevices());
-    this.filteredDevices = this._search(this.filterInput.nativeElement.value);
-    this.devices.forEach(device => {
-      if (device.groupId === this.selectedGroup) {
-        device.isChecked = true;
-      }
-      else{
-        device.isChecked = false;
-      }
-    });
+    this.server.update(this.getCheckedDevices(), this.selectedGroup);
+    this.filteredDevices = this._search(this.filterInput.nativeElement.value, this.devices);
+    this.devices.map(device => device.isChecked = device.groupId === this.selectedGroup);
   }
 
   onClearBtnClick(): void{
-    this.devices.forEach(device => {
-      if (device.groupId === this.selectedGroup) {
-        device.isChecked = true;
-      }
-      else{
-        device.isChecked = false;
-      }
-    });
+    this.devices.map(device => device.isChecked = device.groupId === this.selectedGroup);
   }
 
   getCheckedDevices(): Device[] {return this.devices.filter(device => device.isChecked); }
@@ -107,10 +85,14 @@ export class DevicesComponent implements OnInit, AfterViewInit {
     return group;
   }
 
-  _search(text: string): Device[] {
-    return this.devices.filter(device => {
+  _search(text: string, devices: Device[]): Device[] {
+    return devices.filter(device => {
       const term = text.toLowerCase();
       return device.name.toLowerCase().includes(term);
     });
+  }
+  ngOnDestroy(): void{
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 }

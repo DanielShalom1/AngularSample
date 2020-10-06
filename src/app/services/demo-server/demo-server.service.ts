@@ -1,6 +1,7 @@
 import { DeviceDbo } from './../../models/deviceDbo';
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
 import { EMPTY } from 'rxjs';
 
@@ -8,7 +9,6 @@ import { EMPTY } from 'rxjs';
   providedIn: 'root'
 })
 export class DemoServerService {
-
   private devices: DeviceDbo[] = [
     {id: 0, name: 'John', isActive: false, groupId: 1},
     {id: 1, name: 'Dan', isActive: true, groupId: 2},
@@ -18,23 +18,21 @@ export class DemoServerService {
     {id: 5, name: 'Nahum', isActive: true, groupId: 4},
     {id: 6, name: 'Yatrachna', isActive: false, groupId: 3},
   ];
+  devices$ = new BehaviorSubject<DeviceDbo[]>(this.devices);
 
   constructor() { }
 
-  getDevices(): Observable<DeviceDbo[]>{
-    return of(this.devices);
-  }
-  update(devicesInGroup: DeviceDbo[], selectedGroup: number): Observable<boolean> {
+  update(devicesInGroup: DeviceDbo[], selectedGroup: number): void {
     devicesInGroup.forEach(device => {
       this.devices.find(o => o.id === device.id).groupId = selectedGroup;
     });
 
-    this.devices.forEach(device => {
+    this.devices.map(device => {
       if (device.groupId === selectedGroup && !devicesInGroup.find(o => o.id === device.id)){
         device.groupId = null;
       }
+      return device;
     });
-    return of(true);
+    this.devices$.next(this.devices);
   }
-
 }
