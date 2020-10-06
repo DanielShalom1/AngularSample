@@ -3,7 +3,7 @@ import { DeviceDbo } from './../../models/deviceDbo';
 import { Device } from './../../models/device';
 import { debounceTime, takeUntil } from 'rxjs/internal/operators';
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { fromEvent, Observable, Subject } from 'rxjs';
+import { combineLatest, fromEvent, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-devices',
@@ -45,9 +45,25 @@ export class DevicesComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(300)).subscribe(() =>
-        this.filteredDevices = this._search(this.filterInput.nativeElement.value, this.devices)
-      );
+    const events = [];
+    events.push(fromEvent<any>(this.filterInput.nativeElement, 'keyup').pipe(debounceTime(300)));
+    events.push(this.server.devices$.pipe(takeUntil(this.unsubscribe$)));
+    combineLatest(events).subscribe(([, devices]: any[]) => {
+      this.devices = [];
+      this.groups = [];
+      devices.forEach(deviceDbo => {
+        const device: Device =
+        {
+           id: deviceDbo.id, groupId: deviceDbo.groupId, name: deviceDbo.name, isActive: deviceDbo.isActive, isChecked: false
+        };
+        this.devices.push(device);
+        if (!this.groups.includes(deviceDbo.groupId) && deviceDbo.groupId != null) {
+          this.groups.push(deviceDbo.groupId);
+        }
+      });
+      this.groups.sort();
+      this.filteredDevices = this._search(this.filterInput.nativeElement.value, this.devices);
+    });
   }
 
   changeStatus(device: Device): void{

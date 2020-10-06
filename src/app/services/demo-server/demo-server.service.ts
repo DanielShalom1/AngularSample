@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { BehaviorSubject } from 'rxjs';
 
-import { EMPTY } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
